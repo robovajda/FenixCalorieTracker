@@ -236,6 +236,22 @@ const FOOD_DB = [{
   c: 3,
   f: 14
 }, {
+  id: "jogurt_smotanovy",
+  name: "Jogurt smotanový",
+  cat: "Vajcia a mliečne",
+  kcal: 105,
+  p: 3.5,
+  c: 8,
+  f: 6.5
+}, {
+  id: "cokolada_mliecna",
+  name: "Čokoláda mliečna",
+  cat: "Sladkosti",
+  kcal: 545,
+  p: 7,
+  c: 58,
+  f: 31
+}, {
   id: "cottage",
   name: "Cottage cheese",
   cat: "Vajcia a mliečne",
@@ -339,6 +355,22 @@ const FOOD_DB = [{
   p: 9,
   c: 55,
   f: 3.5
+}, {
+  id: "rozok_makovy",
+  name: "Makový rožok (80 g kus)",
+  cat: "Prílohy",
+  kcal: 310,
+  p: 8,
+  c: 52,
+  f: 8
+}, {
+  id: "vianocka",
+  name: "Vianočka",
+  cat: "Prílohy",
+  kcal: 350,
+  p: 8,
+  c: 52,
+  f: 12
 }, {
   id: "banán",
   name: "Banán",
@@ -1078,6 +1110,25 @@ function GoalsModal({
   const [p, setP] = useState(String(goals.p));
   const [c, setC] = useState(String(goals.c));
   const [f, setF] = useState(String(goals.f));
+  function recalcKcal(pVal, cVal, fVal) {
+    const pNum = parseFloat(pVal) || 0;
+    const cNum = parseFloat(cVal) || 0;
+    const fNum = parseFloat(fVal) || 0;
+    const computed = pNum * 4 + cNum * 4 + fNum * 9;
+    setKcal(String(Math.round(computed)));
+  }
+  function handleP(val) {
+    setP(val);
+    recalcKcal(val, c, f);
+  }
+  function handleC(val) {
+    setC(val);
+    recalcKcal(p, val, f);
+  }
+  function handleF(val) {
+    setF(val);
+    recalcKcal(p, c, val);
+  }
   return /*#__PURE__*/React.createElement("div", {
     style: styles.modalOverlay,
     onClick: onClose
@@ -1105,22 +1156,24 @@ function GoalsModal({
   }, /*#__PURE__*/React.createElement(FormField, {
     label: "Bielkoviny (g)",
     value: p,
-    onChange: setP,
+    onChange: handleP,
     type: "number",
     compact: true
   }), /*#__PURE__*/React.createElement(FormField, {
     label: "Sacharidy (g)",
     value: c,
-    onChange: setC,
+    onChange: handleC,
     type: "number",
     compact: true
   }), /*#__PURE__*/React.createElement(FormField, {
     label: "Tuky (g)",
     value: f,
-    onChange: setF,
+    onChange: handleF,
     type: "number",
     compact: true
-  }))), /*#__PURE__*/React.createElement("button", {
+  })), /*#__PURE__*/React.createElement("div", {
+    style: styles.autoCalcNote
+  }, "Kalórie sa prepočítajú automaticky z makier (B a S = 4 kcal/g, T = 9 kcal/g). Pole s kalóriami vieš aj ručne prepísať.")), /*#__PURE__*/React.createElement("button", {
     style: styles.confirmBtn,
     onClick: () => onSave({
       kcal: parseFloat(kcal) || 0,
@@ -1665,6 +1718,12 @@ const styles = {
   formField: {},
   formFieldCompact: {
     flex: 1
+  },
+  autoCalcNote: {
+    fontSize: 11.5,
+    color: "#9a9584",
+    lineHeight: 1.5,
+    marginTop: -2
   },
   formRow3: {
     display: "flex",
