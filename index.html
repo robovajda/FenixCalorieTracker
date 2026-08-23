@@ -175,10 +175,10 @@ const FOOD_DB = [{
   id: "tuniak_olej",
   name: "Tuniak v olivovom oleji",
   cat: "Ryby",
-  kcal: 310,
-  p: 20,
-  c: 15,
-  f: 26
+  kcal: 189,
+  p: 25,
+  c: 0,
+  f: 10
 }, {
   id: "treska",
   name: "Treska",
@@ -224,7 +224,7 @@ const FOOD_DB = [{
   name: "Tvaroh hrudkovitý nízkotučný",
   cat: "Vajcia a mliečne",
   kcal: 75,
-  p: 17,
+  p: 13,
   c: 3,
   f: 0.5
 }, {
@@ -597,6 +597,25 @@ const FOOD_DB = [{
   f: 6
 }];
 const CATS = [...new Set(FOOD_DB.map(f => f.cat))];
+const MEALS = [{
+  id: "ranajky",
+  label: "Raňajky"
+}, {
+  id: "desiata",
+  label: "Desiata"
+}, {
+  id: "obed",
+  label: "Obed"
+}, {
+  id: "olovrant",
+  label: "Olovrant"
+}, {
+  id: "vecera",
+  label: "Večera"
+}, {
+  id: "druha_vecera",
+  label: "Druhá večera"
+}];
 const STORAGE_KEY = "kt_v1";
 function todayStr() {
   const d = new Date();
@@ -605,7 +624,7 @@ function todayStr() {
 function loadState() {
   return {
     log: {},
-    // { "2026-08-23": [ {uid, foodId, grams} ] }
+    // { "2026-08-23": [ {uid, foodId, grams, meal} ] }
     favorites: [],
     // [foodId]
     custom: [],
@@ -615,7 +634,8 @@ function loadState() {
       p: 150,
       c: 200,
       f: 65
-    }
+    },
+    lastMeal: "ranajky"
   };
 }
 function App() {
@@ -627,6 +647,7 @@ function App() {
   const [openCat, setOpenCat] = useState(null);
   const [pickerFood, setPickerFood] = useState(null); // food object being added
   const [grams, setGrams] = useState("100");
+  const [mealChoice, setMealChoice] = useState("ranajky");
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
   const [toast, setToast] = useState(null);
@@ -689,7 +710,12 @@ function App() {
     setToast(msg);
     setTimeout(() => setToast(null), 1800);
   }
-  function addEntry(food, g) {
+  function openPicker(food) {
+    setPickerFood(food);
+    setGrams("100");
+    setMealChoice(data.lastMeal || "ranajky");
+  }
+  function addEntry(food, g, meal) {
     const gramsNum = parseFloat(g);
     if (!gramsNum || gramsNum <= 0) return;
     setData(d => {
@@ -697,13 +723,15 @@ function App() {
         ...d,
         log: {
           ...d.log
-        }
+        },
+        lastMeal: meal
       };
       const list = next.log[date] ? [...next.log[date]] : [];
       list.push({
         uid: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         foodId: food.id,
-        grams: gramsNum
+        grams: gramsNum,
+        meal
       });
       next.log[date] = list;
       return next;
@@ -817,33 +845,48 @@ function App() {
     style: styles.logSection
   }, dayEntries.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: styles.emptyLog
-  }, "Zatiaľ nič nezjedené. Pridaj potravinu nižšie.") : /*#__PURE__*/React.createElement("div", {
-    style: styles.logList
-  }, dayEntries.map(e => {
-    const food = foodById(e.foodId);
-    if (!food) return null;
-    const mult = e.grams / 100;
+  }, "Zatiaľ nič nezjedené. Pridaj potravinu nižšie.") : MEALS.map(m => {
+    const entries = dayEntries.filter(e => (e.meal || "ranajky") === m.id);
+    if (entries.length === 0) return null;
+    const mealKcal = entries.reduce((sum, e) => {
+      const food = foodById(e.foodId);
+      return food ? sum + food.kcal * (e.grams / 100) : sum;
+    }, 0);
     return /*#__PURE__*/React.createElement("div", {
-      key: e.uid,
-      style: styles.logItem
+      key: m.id,
+      style: styles.mealGroup
     }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: styles.logItemName
-    }, food.name), /*#__PURE__*/React.createElement("div", {
-      style: styles.logItemMeta
-    }, e.grams, " g · ", Math.round(food.kcal * mult), " kcal")), /*#__PURE__*/React.createElement("button", {
-      style: styles.deleteBtn,
-      onClick: () => removeEntry(e.uid),
-      "aria-label": "Odstrániť"
-    }, /*#__PURE__*/React.createElement(Trash2, {
-      size: 16,
-      strokeWidth: 2
+      style: styles.mealGroupHeader
+    }, /*#__PURE__*/React.createElement("span", null, m.label), /*#__PURE__*/React.createElement("span", {
+      style: styles.mealGroupKcal
+    }, Math.round(mealKcal), " kcal")), /*#__PURE__*/React.createElement("div", {
+      style: styles.logList
+    }, entries.map(e => {
+      const food = foodById(e.foodId);
+      if (!food) return null;
+      const mult = e.grams / 100;
+      return /*#__PURE__*/React.createElement("div", {
+        key: e.uid,
+        style: styles.logItem
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: styles.logItemName
+      }, food.name), /*#__PURE__*/React.createElement("div", {
+        style: styles.logItemMeta
+      }, e.grams, " g · ", Math.round(food.kcal * mult), " kcal")), /*#__PURE__*/React.createElement("button", {
+        style: styles.deleteBtn,
+        onClick: () => removeEntry(e.uid),
+        "aria-label": "Odstrániť"
+      }, /*#__PURE__*/React.createElement(Trash2, {
+        size: 16,
+        strokeWidth: 2
+      })));
     })));
-  }))), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: styles.tabBar
   }, /*#__PURE__*/React.createElement(TabBtn, {
     active: tab === "favorites",
@@ -877,18 +920,12 @@ function App() {
     foods: favFoods,
     favorites: data.favorites,
     onToggleFav: toggleFavorite,
-    onPick: f => {
-      setPickerFood(f);
-      setGrams("100");
-    }
+    onPick: openPicker
   })), tab === "database" && (query ? /*#__PURE__*/React.createElement(FoodList, {
     foods: FOOD_DB.filter(f => f.name.toLowerCase().includes(query.toLowerCase())),
     favorites: data.favorites,
     onToggleFav: toggleFavorite,
-    onPick: f => {
-      setPickerFood(f);
-      setGrams("100");
-    }
+    onPick: openPicker
   }) : CATS.map(cat => /*#__PURE__*/React.createElement("div", {
     key: cat,
     style: styles.catBlock
@@ -903,10 +940,7 @@ function App() {
     foods: FOOD_DB.filter(f => f.cat === cat),
     favorites: data.favorites,
     onToggleFav: toggleFavorite,
-    onPick: f => {
-      setPickerFood(f);
-      setGrams("100");
-    }
+    onPick: openPicker
   })))), tab === "custom" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
     style: styles.addCustomBtn,
     onClick: () => setShowAddCustom(true)
@@ -918,10 +952,7 @@ function App() {
     foods: data.custom.filter(f => f.name.toLowerCase().includes(query.toLowerCase())),
     favorites: data.favorites,
     onToggleFav: toggleFavorite,
-    onPick: f => {
-      setPickerFood(f);
-      setGrams("100");
-    },
+    onPick: openPicker,
     onDelete: deleteCustomFood,
     deletable: true
   }))), pickerFood && /*#__PURE__*/React.createElement("div", {
@@ -948,7 +979,18 @@ function App() {
     value: grams,
     onChange: e => setGrams(e.target.value),
     autoFocus: true
-  }), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("label", {
+    style: styles.gramLabel
+  }, "Kategória jedla"), /*#__PURE__*/React.createElement("div", {
+    style: styles.mealChipRow
+  }, MEALS.map(m => /*#__PURE__*/React.createElement("button", {
+    key: m.id,
+    style: {
+      ...styles.mealChip,
+      ...(mealChoice === m.id ? styles.mealChipActive : {})
+    },
+    onClick: () => setMealChoice(m.id)
+  }, m.label))), /*#__PURE__*/React.createElement("div", {
     style: styles.previewRow
   }, /*#__PURE__*/React.createElement(PreviewStat, {
     label: "kcal",
@@ -964,7 +1006,7 @@ function App() {
     value: round1(pickerFood.f * (parseFloat(grams) || 0) / 100)
   })), /*#__PURE__*/React.createElement("button", {
     style: styles.confirmBtn,
-    onClick: () => addEntry(pickerFood, grams)
+    onClick: () => addEntry(pickerFood, grams, mealChoice)
   }, "Pridať do denníka"))), showAddCustom && /*#__PURE__*/React.createElement(AddCustomModal, {
     onClose: () => setShowAddCustom(false),
     onSave: addCustomFood
@@ -1482,6 +1524,47 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: 8
+  },
+  mealGroup: {
+    marginBottom: 14
+  },
+  mealGroupHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    padding: "0 2px 6px",
+    fontSize: 12.5,
+    fontWeight: 700,
+    color: "#4a4638",
+    letterSpacing: "0.02em",
+    textTransform: "uppercase"
+  },
+  mealGroupKcal: {
+    fontSize: 11.5,
+    fontWeight: 600,
+    color: "#9a9584",
+    textTransform: "none",
+    letterSpacing: 0
+  },
+  mealChipRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 16
+  },
+  mealChip: {
+    padding: "8px 12px",
+    borderRadius: 999,
+    border: "1px solid #EAE4D6",
+    background: "#FFFDF9",
+    color: "#5b5748",
+    fontSize: 12.5,
+    fontWeight: 600
+  },
+  mealChipActive: {
+    background: "#5B8C5A",
+    borderColor: "#5B8C5A",
+    color: "#FFFDF9"
   },
   logItem: {
     display: "flex",
