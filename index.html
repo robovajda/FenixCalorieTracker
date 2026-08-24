@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="sk">
 <head>
 <meta charset="UTF-8" />
@@ -18,9 +17,7 @@
 </style>
 
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-
 </head>
 <body>
 <div id="root"></div>
@@ -556,6 +553,46 @@ const FOOD_DB = [{
   c: 0.1,
   f: 81
 }, {
+  id: "tatarska_omacka",
+  name: "Tatárska omáčka",
+  cat: "Dipy a omáčky",
+  kcal: 380,
+  p: 1,
+  c: 8,
+  f: 38
+}, {
+  id: "kecup",
+  name: "Kečup",
+  cat: "Dipy a omáčky",
+  kcal: 100,
+  p: 1.2,
+  c: 24,
+  f: 0.2
+}, {
+  id: "horcica",
+  name: "Horčica",
+  cat: "Dipy a omáčky",
+  kcal: 90,
+  p: 4.5,
+  c: 8,
+  f: 4
+}, {
+  id: "dzem",
+  name: "Džem",
+  cat: "Dipy a omáčky",
+  kcal: 250,
+  p: 0.3,
+  c: 62,
+  f: 0.1
+}, {
+  id: "cukor_biely",
+  name: "Cukor biely",
+  cat: "Dipy a omáčky",
+  kcal: 400,
+  p: 0,
+  c: 100,
+  f: 0
+}, {
   id: "šošovica_varena",
   name: "Šošovica varená",
   cat: "Strukoviny",
@@ -617,9 +654,12 @@ const MEALS = [{
   label: "Druhá večera"
 }];
 const STORAGE_KEY = "kt_v1";
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
 function todayStr() {
   const d = new Date();
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 function loadState() {
   return {
@@ -679,6 +719,10 @@ function App() {
   }, [data]);
   const foodById = useCallback(id => allFoods.find(f => f.id === id), [allFoods]);
   const dayEntries = data?.log[date] || [];
+  const minDate = shiftDate(todayStr(), -3);
+  const maxDate = todayStr();
+  const isMinDate = date <= minDate;
+  const isMaxDate = date >= maxDate;
   const totals = useMemo(() => {
     let kcal = 0,
       p = 0,
@@ -804,15 +848,27 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     style: styles.dateRow
   }, /*#__PURE__*/React.createElement("button", {
-    style: styles.dateBtn,
-    onClick: () => setDate(shiftDate(date, -1)),
-    "aria-label": "Predošlý deň"
+    style: {
+      ...styles.dateBtn,
+      ...(isMinDate ? styles.dateBtnDisabled : {})
+    },
+    onClick: () => {
+      if (!isMinDate) setDate(shiftDate(date, -1));
+    },
+    "aria-label": "Predošlý deň",
+    disabled: isMinDate
   }, "‹"), /*#__PURE__*/React.createElement("div", {
     style: styles.dateLabel
   }, formatDateSk(date)), /*#__PURE__*/React.createElement("button", {
-    style: styles.dateBtn,
-    onClick: () => setDate(shiftDate(date, 1)),
-    "aria-label": "Nasledujúci deň"
+    style: {
+      ...styles.dateBtn,
+      ...(isMaxDate ? styles.dateBtnDisabled : {})
+    },
+    onClick: () => {
+      if (!isMaxDate) setDate(shiftDate(date, 1));
+    },
+    "aria-label": "Nasledujúci deň",
+    disabled: isMaxDate
   }, "›")), /*#__PURE__*/React.createElement("div", {
     style: styles.ringRow
   }, /*#__PURE__*/React.createElement(MacroRing, {
@@ -897,7 +953,7 @@ function App() {
   }, "Databáza"), /*#__PURE__*/React.createElement(TabBtn, {
     active: tab === "custom",
     onClick: () => setTab("custom")
-  }, "Vlastné")), tab !== "favorites" && /*#__PURE__*/React.createElement("div", {
+  }, "Vlastné")), /*#__PURE__*/React.createElement("div", {
     style: styles.searchWrap
   }, /*#__PURE__*/React.createElement(Search, {
     size: 16,
@@ -909,24 +965,24 @@ function App() {
     }
   }), /*#__PURE__*/React.createElement("input", {
     style: styles.searchInput,
-    placeholder: "Hľadať potravinu...",
+    placeholder: "Hľadať potravinu vo všetkých kategóriách...",
     value: query,
     onChange: e => setQuery(e.target.value)
   })), /*#__PURE__*/React.createElement("div", {
     style: styles.contentArea
-  }, tab === "favorites" && (favFoods.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, query ? /*#__PURE__*/React.createElement(FoodList, {
+    foods: allFoods.filter(f => f.name.toLowerCase().includes(query.toLowerCase())),
+    favorites: data.favorites,
+    onToggleFav: toggleFavorite,
+    onPick: openPicker
+  }) : /*#__PURE__*/React.createElement(React.Fragment, null, tab === "favorites" && (favFoods.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: styles.emptyLog
   }, "Zatiaľ žiadne obľúbené. Otvor „Databáza\" a klikni na hviezdičku pri potravine.") : /*#__PURE__*/React.createElement(FoodList, {
     foods: favFoods,
     favorites: data.favorites,
     onToggleFav: toggleFavorite,
     onPick: openPicker
-  })), tab === "database" && (query ? /*#__PURE__*/React.createElement(FoodList, {
-    foods: FOOD_DB.filter(f => f.name.toLowerCase().includes(query.toLowerCase())),
-    favorites: data.favorites,
-    onToggleFav: toggleFavorite,
-    onPick: openPicker
-  }) : CATS.map(cat => /*#__PURE__*/React.createElement("div", {
+  })), tab === "database" && CATS.map(cat => /*#__PURE__*/React.createElement("div", {
     key: cat,
     style: styles.catBlock
   }, /*#__PURE__*/React.createElement("button", {
@@ -941,7 +997,7 @@ function App() {
     favorites: data.favorites,
     onToggleFav: toggleFavorite,
     onPick: openPicker
-  })))), tab === "custom" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+  }))), tab === "custom" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
     style: styles.addCustomBtn,
     onClick: () => setShowAddCustom(true)
   }, /*#__PURE__*/React.createElement(Plus, {
@@ -949,13 +1005,13 @@ function App() {
   }), " Pridať vlastnú potravinu"), data.custom.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: styles.emptyLog
   }, "Žiadne vlastné potraviny. Pridaj svoju prvú vyššie.") : /*#__PURE__*/React.createElement(FoodList, {
-    foods: data.custom.filter(f => f.name.toLowerCase().includes(query.toLowerCase())),
+    foods: data.custom,
     favorites: data.favorites,
     onToggleFav: toggleFavorite,
     onPick: openPicker,
     onDelete: deleteCustomFood,
     deletable: true
-  }))), pickerFood && /*#__PURE__*/React.createElement("div", {
+  })))), pickerFood && /*#__PURE__*/React.createElement("div", {
     style: styles.modalOverlay,
     onClick: () => setPickerFood(null)
   }, /*#__PURE__*/React.createElement("div", {
@@ -1078,13 +1134,15 @@ function AddCustomModal({
   const [p, setP] = useState("");
   const [c, setC] = useState("");
   const [f, setF] = useState("");
+  const [cat, setCat] = useState("Vlastné");
   const valid = name.trim() && kcal !== "";
+  const catOptions = ["Vlastné", ...CATS];
   function handleSave() {
     if (!valid) return;
     onSave({
       id: `custom_${Date.now()}`,
       name: name.trim(),
-      cat: "Vlastné",
+      cat,
       kcal: parseFloat(kcal) || 0,
       p: parseFloat(p) || 0,
       c: parseFloat(c) || 0,
@@ -1142,7 +1200,18 @@ function AddCustomModal({
     type: "number",
     placeholder: "0",
     compact: true
-  }))), /*#__PURE__*/React.createElement("button", {
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: styles.formLabel
+  }, "Kategória"), /*#__PURE__*/React.createElement("div", {
+    style: styles.catChipRow
+  }, catOptions.map(c2 => /*#__PURE__*/React.createElement("button", {
+    key: c2,
+    style: {
+      ...styles.catChip,
+      ...(cat === c2 ? styles.catChipActive : {})
+    },
+    onClick: () => setCat(c2)
+  }, c2))))), /*#__PURE__*/React.createElement("button", {
     style: {
       ...styles.confirmBtn,
       opacity: valid ? 1 : 0.5
@@ -1356,7 +1425,7 @@ function round1(n) {
 function shiftDate(dateStr, delta) {
   const d = new Date(dateStr + "T00:00:00");
   d.setDate(d.getDate() + delta);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 const SK_DAYS = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
 const SK_MONTHS = ["januára", "februára", "marca", "apríla", "mája", "júna", "júla", "augusta", "septembra", "októbra", "novembra", "decembra"];
@@ -1431,6 +1500,10 @@ const styles = {
     color: "#9a9584",
     padding: "2px 10px",
     lineHeight: 1
+  },
+  dateBtnDisabled: {
+    color: "#d8d3c4",
+    cursor: "default"
   },
   dateLabel: {
     fontSize: 15,
@@ -1564,6 +1637,26 @@ const styles = {
   mealChipActive: {
     background: "#5B8C5A",
     borderColor: "#5B8C5A",
+    color: "#FFFDF9"
+  },
+  catChipRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 6
+  },
+  catChip: {
+    padding: "8px 12px",
+    borderRadius: 999,
+    border: "1px solid #EAE4D6",
+    background: "#FFFDF9",
+    color: "#5b5748",
+    fontSize: 12.5,
+    fontWeight: 600
+  },
+  catChipActive: {
+    background: "#C77B4A",
+    borderColor: "#C77B4A",
     color: "#FFFDF9"
   },
   logItem: {
@@ -1855,6 +1948,5 @@ const styles = {
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(/*#__PURE__*/React.createElement(App, null));
 </script>
-
 </body>
 </html>
