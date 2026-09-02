@@ -854,7 +854,8 @@ function loadState() {
       c: 200,
       f: 65
     },
-    lastMeal: "ranajky"
+    lastMeal: "ranajky",
+    lastGrams: {} // { foodId: grams } — remembers last used portion per food
   };
 }
 function App() {
@@ -935,7 +936,8 @@ function App() {
   }
   function openPicker(food) {
     setPickerFood(food);
-    setGrams("100");
+    const remembered = data.lastGrams && data.lastGrams[food.id];
+    setGrams(remembered ? String(remembered) : "100");
     setMealChoice(data.lastMeal || "ranajky");
   }
   function addEntry(food, g, meal) {
@@ -947,7 +949,11 @@ function App() {
         log: {
           ...d.log
         },
-        lastMeal: meal
+        lastMeal: meal,
+        lastGrams: {
+          ...(d.lastGrams || {}),
+          [food.id]: gramsNum
+        }
       };
       const list = next.log[date] ? [...next.log[date]] : [];
       list.push({
