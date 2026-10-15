@@ -21,7 +21,6 @@
 </head>
 <body>
 <div id="root"></div>
-
 <script>
 const {
   useState,
@@ -915,6 +914,7 @@ function App() {
   const [mealChoice, setMealChoice] = useState("ranajky");
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
+  const [detailEntry, setDetailEntry] = useState(null); // log entry shown in detail modal
   const [toast, setToast] = useState(null);
 
   // Load from storage (localStorage — persists in this browser only)
@@ -1157,8 +1157,10 @@ function App() {
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           flex: 1,
-          minWidth: 0
-        }
+          minWidth: 0,
+          cursor: "pointer"
+        },
+        onClick: () => setDetailEntry(e)
       }, /*#__PURE__*/React.createElement("div", {
         style: styles.logItemName
       }, food.name), /*#__PURE__*/React.createElement("div", {
@@ -1293,7 +1295,44 @@ function App() {
   })), /*#__PURE__*/React.createElement("button", {
     style: styles.confirmBtn,
     onClick: () => addEntry(pickerFood, grams, mealChoice)
-  }, "Pridať do denníka"))), showAddCustom && /*#__PURE__*/React.createElement(AddCustomModal, {
+  }, "Pridať do denníka"))), detailEntry && (() => {
+    const df = foodById(detailEntry.foodId);
+    if (!df) return null;
+    const dm = detailEntry.grams / 100;
+    return /*#__PURE__*/React.createElement("div", {
+      style: styles.modalOverlay,
+      onClick: () => setDetailEntry(null)
+    }, /*#__PURE__*/React.createElement("div", {
+      style: styles.modalCard,
+      onClick: ev => ev.stopPropagation()
+    }, /*#__PURE__*/React.createElement("div", {
+      style: styles.modalHeader
+    }, /*#__PURE__*/React.createElement("div", {
+      style: styles.modalTitle
+    }, df.name, " ", detailEntry.grams, " g"), /*#__PURE__*/React.createElement("button", {
+      style: styles.modalClose,
+      onClick: () => setDetailEntry(null)
+    }, /*#__PURE__*/React.createElement(X, {
+      size: 18
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: styles.previewRow
+    }, /*#__PURE__*/React.createElement(PreviewStat, {
+      label: "kcal",
+      value: Math.round(df.kcal * dm)
+    }), /*#__PURE__*/React.createElement(PreviewStat, {
+      label: "B",
+      value: round1(df.p * dm)
+    }), /*#__PURE__*/React.createElement(PreviewStat, {
+      label: "S",
+      value: round1(df.c * dm)
+    }), /*#__PURE__*/React.createElement(PreviewStat, {
+      label: "T",
+      value: round1(df.f * dm)
+    })), /*#__PURE__*/React.createElement("button", {
+      style: styles.confirmBtn,
+      onClick: () => setDetailEntry(null)
+    }, "Zavrieť")));
+  })(), showAddCustom && /*#__PURE__*/React.createElement(AddCustomModal, {
     onClose: () => setShowAddCustom(false),
     onSave: addCustomFood
   }), showGoals && /*#__PURE__*/React.createElement(GoalsModal, {
